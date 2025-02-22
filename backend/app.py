@@ -81,13 +81,15 @@ def query_rag():
 
         # Generate response using Ollama DeepSeek (with timeout handling)
         response = ollama.chat(
-            model="deepseek-r1",
-            messages=[
-                {"role": "system", "content": "Use the retrieved document data to answer the question."},
-                {"role": "user", "content": f"Question: {question}\n\nRelevant Document:\n{retrieved_text}"}
-            ],
-            stream=False
-        )
+                    model="mistral",
+                    messages=[
+                        {"role": "system", "content": "You are an AI assistant that answers user queries using the retrieved document data. Be concise, clear, and accurate. If the document lacks relevant information, say so instead of guessing."},
+                        {"role": "user", "content": f"Here is a document:\n\n{retrieved_text}\n\nBased on this, answer the following question:\n\n{question}"}
+                    ],
+                    stream=False,
+                    options={"temperature": 0.2}
+
+)
 
         answer = response.get("message", {}).get("content", "No response generated.")
 

@@ -2,5 +2,5 @@
  * Public API Surface of chat
  */
 
-export * from './lib/chat.service';
-export * from './lib/chat.component';
+export * from './lib/services/chat.service';
+export * from './lib/components/chat.component';
