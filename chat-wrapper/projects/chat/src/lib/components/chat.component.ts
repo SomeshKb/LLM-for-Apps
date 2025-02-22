@@ -49,12 +49,11 @@ export class ChatComponent implements AfterViewChecked {
       message: this.messageText,
     });
 
-    this.messageText = '';
     this.isChatBotProcessing = true;
 
     this.chatService.askQuestion(this.messageText).subscribe({
       next: (response: any) => {
-
+        this.messageText = '';
         this.isChatBotProcessing = false;
         this.messages.push({
           id: this.messages.length,

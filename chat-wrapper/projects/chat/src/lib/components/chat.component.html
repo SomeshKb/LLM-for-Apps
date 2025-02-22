@@ -3,11 +3,13 @@
     @for(message of messages; track message.id) {
     <div class="message">
       <span [ngClass]="message.sender === senderType.Bot ? 'bot-message' : 'user-message'">
-
         <markdown class="markdown" [data]="message.message"></markdown>
-
       </span>
     </div>
+    }
+
+    @if(isChatBotProcessing) {
+      ...................Thinking...................
     }
   </div>
 
