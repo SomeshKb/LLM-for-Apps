@@ -104,3 +104,49 @@ $chat-wrapper-font-size: 10px;
   scrollbar-width: thin;
   scrollbar-color: #888 #f1f1f1;
 }
+
+.action-button {
+  background: $border-color;
+  color: #fff;
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+  font-size: $chat-wrapper-font-size;
+  width: fit-content;
+  margin: 3px auto;
+  border-radius: 6px;
+}
+
+.toggle-chat-button{
+  background-color: #3498db;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.3s ease-in-out;
+
+  &:hover {
+    background-color: #2980b9;
+  }
+
+  &.active {
+    background-color: #2ecc71;
+  }
+
+  span {
+    transition: transform 0.3s ease-in-out;
+    display: inline-block;
+  }
+
+  .arrow-up::before {
+    content: "▲";
+  }
+
+  .arrow-down::before {
+    content: "▼";
+  }
+}

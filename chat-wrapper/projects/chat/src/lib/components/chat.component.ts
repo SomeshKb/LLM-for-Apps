@@ -21,6 +21,8 @@ export class ChatComponent implements AfterViewChecked {
   isChatBotProcessing: boolean = false;
   hasActions: boolean = false;
   chatAction : any = null;
+  isChatWindowOpen: boolean = false;
+
   constructor(private readonly chatService: ChatService) {
     this.messages.push({
       id: this.messages.length,
@@ -45,7 +47,7 @@ export class ChatComponent implements AfterViewChecked {
   }
 
   sendMessage() {
-    if(this.messageText = "") {
+    if(this.messageText == "") {
       return;
     }
     this.messages.push({
@@ -54,10 +56,15 @@ export class ChatComponent implements AfterViewChecked {
       message: this.messageText,
     });
 
+    this.hasActions = false;
+
     this.isChatBotProcessing = true;
 
     this.chatService.askQuestion(this.messageText).subscribe({
       next: (response: any) => {
+        if(response.action) {
+          this.getActions(response.action);
+        }
         this.messageText = '';
         this.isChatBotProcessing = false;
         this.messages.push({
@@ -81,13 +88,13 @@ export class ChatComponent implements AfterViewChecked {
     });
   }
 
-  getActions(actionKey: ActionKeys) {
+  getActions(action: any) {
 
-    if (actionKey in actions) {
-      const actionDetails = actions[actionKey as ActionKeys];
+    const actionKey = action.action_key as ActionKeys;
+    if (action.action_key in actions) {
+      const actionDetails = actions[actionKey];
       this.hasActions=true;
       this.chatAction = actionDetails;
-      console.log(actionDetails);
     } else {
       console.log("Invalid action key!");
     }

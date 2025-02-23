@@ -1,4 +1,11 @@
 <div class="chat-wrapper">
+  <!--
+    <button class="toggle-chat-button" (click)="isChatWindowOpen=!isChatWindowOpen" [ngClass]="{ 'active': isChatWindowOpen }">
+      <span [ngClass]="{ 'arrow-up': isChatWindowOpen, 'arrow-down': !isChatWindowOpen }"></span>
+    </button> -->
+
+  @if(isChatWindowOpen) {
+
   <div class="message-wrapper" #chatContainer>
     @for(message of messages; track message.id) {
     <div class="message">
@@ -9,18 +16,19 @@
     }
 
     @if(isChatBotProcessing) {
-      ...................Thinking...................
+    ...................Thinking...................
     }
 
     @if(hasActions){
-      <button class="action-button">{{chatAction.description}}</button>
+    <button class="button action-button">{{chatAction.description}}</button>
     }
 
   </div>
 
   <div class="input-wrapper">
-    <input class="input" type="text" placeholder="Type a message..." [(ngModel)]="messageText"
-      (keyup.enter)="sendMessage()" />
-    <button class="send-button" (click)="sendMessage()">Send</button>
+    <input [disabled]="isChatBotProcessing" class="input" type="text" placeholder="Type a message..."
+      [(ngModel)]="messageText" (keyup.enter)="sendMessage()" />
+    <button class="send-button" [disabled]="isChatBotProcessing" (click)="sendMessage()">Send</button>
   </div>
+  }
 </div>
