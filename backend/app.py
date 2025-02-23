@@ -1,4 +1,5 @@
 import os
+import time
 import ollama
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -6,24 +7,92 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-import time
 
 app = Flask(__name__)
 CORS(app)
 
-embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+# Load embedding model
+embedding_model = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
 
+# Initialize ChromaDB vector store
 persist_directory = "./chroma_db"
-vector_store = Chroma(persist_directory=persist_directory, embedding_function=embedding_model)
+vector_store = Chroma(
+    persist_directory=persist_directory, embedding_function=embedding_model
+)
 
-@app.route('/upload', methods=['POST'])
+# Define available actions
+actions = {
+    "generate_model": {
+        "description": "Generate a model",
+        "api_endpoint": "http://your-internal-api.com/generate-model",
+        "method": "POST",
+    },
+    "duplicate_model": {
+        "description": "Restart the application service",
+        "api_endpoint": "http://your-internal-api.com/restart-service",
+        "method": "POST",
+    },
+    "delete_model": {
+        "description": "Delete_model",
+        "api_endpoint": "http://your-internal-api.com/restart-service",
+        "method": "POST",
+    },
+    "deploy_model": {
+        "description": "Deploy the latest version of the application",
+        "api_endpoint": "http://your-internal-api.com/deploy",
+        "method": "POST",
+    },
+}
+
+
+def detect_action_with_llm(question):
+    """Uses LLM to determine the required action from the provided action list"""
+
+    # Create a formatted string of available actions
+    action_list = "\n".join(
+        [f"- {key}: {value['description']}" for key, value in actions.items()]
+    )
+
+    response = ollama.chat(
+        model="mistral",
+        messages=[
+            {
+                "role": "system",
+                "content": f"""
+You are an AI assistant that detects user intent based on the provided actions.  
+Here are the available actions:
+{action_list}
+
+When given a user question, return ONLY the corresponding action key from the list above.  
+If no relevant action exists, return 'none'.
+""",
+            },
+            {
+                "role": "user",
+                "content": f"User asked: {question}. What action should be performed?",
+            },
+        ],
+        stream=False,
+    )
+
+    action_key = response.get("message", {}).get("content", "none").strip()
+
+    # Validate action exists
+    if action_key in actions:
+        return action_key
+    return None  # No action detected
+
+
+@app.route("/upload", methods=["POST"])
 def upload_document():
-    """ Uploads a document, extracts text, and stores it in the vector database """
-    if 'file' not in request.files:
+    """Uploads a document, extracts text, and stores it in the vector database"""
+    if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
 
-    file = request.files['file']
-    if file.filename == '':
+    file = request.files["file"]
+    if file.filename == "":
         return jsonify({"error": "No selected file"}), 400
 
     try:
@@ -50,64 +119,79 @@ def upload_document():
         vector_store.add_texts(text_content)
         vector_store.persist()
 
-        return jsonify({"message": f"Document '{file.filename}' processed and stored successfully."})
+        return jsonify(
+            {
+                "message": f"Document '{file.filename}' processed and stored successfully."
+            }
+        )
 
     except Exception as e:
         print("Error:", e)
         return jsonify({"error": str(e)}), 500
 
-@app.route('/query', methods=['POST'])
+
+@app.route("/query", methods=["POST"])
 def query_rag():
-    """ Retrieves relevant document chunks and generates an answer using DeepSeek """
+    """Retrieves relevant document chunks and generates an answer using DeepSeek"""
     data = request.json
-    if "question" not in data:
+    question = data.get("question", "").strip()
+
+    if not question:
         return jsonify({"error": "Missing 'question' parameter"}), 400
 
     try:
-        question = data["question"]
-        
         start_time = time.time()  # Track execution time
 
-        # Retrieve top matching document chunks (optimize search)
-        results = vector_store.similarity_search(question, k=1)  # Reduce to `k=1` for faster response
+        # Retrieve relevant documentation
+        results = vector_store.similarity_search(question, k=1)
         retrieved_text = "\n".join([doc.page_content for doc in results])
 
         if not retrieved_text:
             return jsonify({"error": "No relevant document found."}), 404
 
-        # Time check for debugging
-        search_time = time.time() - start_time
-        print(f"🔍 Vector search took {search_time:.2f} seconds")
-
-        # Generate response using Ollama DeepSeek (with timeout handling)
+        # Generate response using LLM
         response = ollama.chat(
-                    model="mistral",
-                    messages=[
-                        {"role": "system", "content": "You are an AI assistant that answers user queries using the retrieved document data. Be concise, clear, and accurate. If the document lacks relevant information, say so instead of guessing."},
-                        {"role": "user", "content": f"Here is a document:\n\n{retrieved_text}\n\nBased on this, answer the following question:\n\n{question}"}
-                    ],
-                    stream=False,
-                    options={"temperature": 0.2}
-
-)
+            model="mistral",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an AI assistant that answers user queries using documentation.",
+                },
+                {
+                    "role": "user",
+                    "content": f"Here is a document:\n\n{retrieved_text}\n\nAnswer this question:\n\n{question}",
+                },
+            ],
+            stream=False,
+        )
 
         answer = response.get("message", {}).get("content", "No response generated.")
 
-        print(f"🧠 DeepSeek response: {answer}")
-        
-        # Time check for debugging
-        total_time = time.time() - start_time
-        print(f"🧠 DeepSeek took {total_time - search_time:.2f} seconds")
+        # Detect required action
+        action_key = detect_action_with_llm(question)
 
-        return jsonify({"answer": answer})
+        # Format response
+        response_data = {"answer": answer, "action": None}
+
+        if action_key:
+            action = actions[action_key]
+            response_data["action"] = {
+                "description": action["description"],
+                "confirm_message": f"Do you want to {action['description']}?",
+                "action_key": action_key,
+            }
+
+        return jsonify(response_data)
 
     except Exception as e:
         print("Error:", e)
         return jsonify({"error": str(e)}), 500
 
-@app.route('/')
+
+@app.route("/")
 def home():
     return jsonify({"message": "RAG API is running! Upload a document and query it."})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5555, debug=True)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5555, debug=True)
