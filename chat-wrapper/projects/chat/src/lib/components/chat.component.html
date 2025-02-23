@@ -11,6 +11,11 @@
     @if(isChatBotProcessing) {
       ...................Thinking...................
     }
+
+    @if(hasActions){
+      <button class="action-button">{{chatAction.description}}</button>
+    }
+
   </div>
 
   <div class="input-wrapper">

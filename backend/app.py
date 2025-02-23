@@ -30,17 +30,17 @@ actions = {
         "method": "POST",
     },
     "duplicate_model": {
-        "description": "Restart the application service",
+        "description": "Duplicate a model",
         "api_endpoint": "http://your-internal-api.com/restart-service",
         "method": "POST",
     },
     "delete_model": {
-        "description": "Delete_model",
+        "description": "Delete a model",
         "api_endpoint": "http://your-internal-api.com/restart-service",
         "method": "POST",
     },
     "deploy_model": {
-        "description": "Deploy the latest version of the application",
+        "description": "Deploy a model",
         "api_endpoint": "http://your-internal-api.com/deploy",
         "method": "POST",
     },

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Message, SenderType } from '../models/chat.model';
 import { ChatService } from '../services/chat.service';
 import { MarkdownModule } from 'ngx-markdown';
+import { ActionKeys, actions } from '../constant/actions';
 
 @Component({
   selector: 'lib-chat',
@@ -18,7 +19,8 @@ export class ChatComponent implements AfterViewChecked {
   messages: Message[] = [];
   messageText: string = '';
   isChatBotProcessing: boolean = false;
-
+  hasActions: boolean = false;
+  chatAction : any = null;
   constructor(private readonly chatService: ChatService) {
     this.messages.push({
       id: this.messages.length,
@@ -43,6 +45,9 @@ export class ChatComponent implements AfterViewChecked {
   }
 
   sendMessage() {
+    if(this.messageText = "") {
+      return;
+    }
     this.messages.push({
       id: this.messages.length,
       sender: SenderType.User,
@@ -74,7 +79,17 @@ export class ChatComponent implements AfterViewChecked {
         this.scrollToBottom();
       }
     });
+  }
 
+  getActions(actionKey: ActionKeys) {
 
+    if (actionKey in actions) {
+      const actionDetails = actions[actionKey as ActionKeys];
+      this.hasActions=true;
+      this.chatAction = actionDetails;
+      console.log(actionDetails);
+    } else {
+      console.log("Invalid action key!");
+    }
   }
 }
